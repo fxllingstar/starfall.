@@ -36,6 +36,37 @@ def get_server_members(server_id: int) -> list:
     finally:
         conn.close()
 
+
+def get_user_by_username(username: str):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("Select * FROM users WHERE username = %s;", (username,))
+            return cur.fetchone()
+    finally:
+        conn.close()
+
+def is_user_in_server(user_id: int, server_id: int) -> bool:
+    """Check if a user is actually a member of a server"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM server_members WHERE user_id = %s AND server_id = %s;"
+                (user_id, server_id)
+            )
+    finally:
+        conn.close()
+        
+
+
+
+
+
+
+
+
+
 def save_message(sender_id: int, content:str, msg_type:str, recipient_id: int = None, server_id: int = None):
     """Save a msg to the database"""
     conn = get_db_connection()
@@ -55,4 +86,3 @@ def save_message(sender_id: int, content:str, msg_type:str, recipient_id: int = 
                   conn.commit()
     finally:
          conn.close()
-         
