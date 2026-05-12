@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
-from passlib.context import CryptContext
+from passlib.context import CryptContext  # type: ignore[import]
 from dotenv import load_dotenv
 
 load_dotenv()
