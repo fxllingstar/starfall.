@@ -1,5 +1,54 @@
-let currentView = 'server'; // 'server' or 'dm'
-        let currentDMUser = null;
+let currentView = 'server'; 
+let currentDMUser = null;
+
+
+ const socket = new WebSocket('ws://localhost:8080/ws/1'); //testing
+
+ socket.onopen = function(e){
+    console.log("Connected to Starfall Backend! :>");
+ };
+
+
+//Incoming msg's
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // Create starfall background effect
         function createStarfall() {
