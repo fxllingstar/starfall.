@@ -36,4 +36,23 @@ def get_server_members(server_id: int) -> list:
     finally:
         conn.close()
 
-        
+def save_message(sender_id: int, content:str, msg_type:str, recipient_id: int = None, server_id: int = None):
+    """Save a msg to the database"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            if msg_type == "server":
+                cur.execute(
+                    "INSERT INTO messages (sender_id, content, server_id) VALUES (%s, %s, %s);",
+                    (sender_id, content, server_id)
+                )
+
+            elif msg_type == "dm":
+                  cur.execute(
+                    "INSERT INTO messages (sender_id, content, recipient_id) VALUES (%s, %s, %s);",
+                    (sender_id, content, recipient_id)
+                )
+                  conn.commit()
+    finally:
+         conn.close()
+         
