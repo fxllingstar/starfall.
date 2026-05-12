@@ -21,43 +21,68 @@
             starsContainer.appendChild(shootingStar);
         }
  
-        // Form switching
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const showSignupBtn = document.getElementById('showSignup');
-        const showLoginBtn = document.getElementById('showLogin');
- 
-        showSignupBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.classList.remove('active');
-            signupForm.classList.add('active');
-        });
- 
-        showLoginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            signupForm.classList.remove('active');
-            loginForm.classList.add('active');
-        });
- 
-        // Form submissions (placeholder functionality)
-        document.getElementById('loginFormElement').addEventListener('submit', (e) => {
-            e.preventDefault();
-            console.log('Login submitted');
-            // Add your login logic here
-        });
- 
-        document.getElementById('signupFormElement').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const password = document.getElementById('signupPassword').value;
-            const confirmPassword = document.getElementById('signupPasswordConfirm').value;
-            
-            if (password !== confirmPassword) {
-                alert('Passwords do not match!');
-                return;
-            }
-            
-            console.log('Signup submitted');
 
 
-    
+      const API_URL = 'http://localhost:8000';
+
+
+// Form submissions
+document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // AUDIT FIX: Include credentials to allow HttpOnly cookies
+            credentials: 'include',
+            body: JSON.stringify({ email, password })
         });
+
+        const result = await response.json();
+        if (response.ok) {
+            // AUDIT FIX: Store only non-sensitive ID, token is now in a secure cookie
+            localStorage.setItem('starfall_user_id', result.user_id);
+            alert('Login successful! Redirecting...');
+            window.location.href = 'chat.html'; // Redirect to chat
+        } else {
+            alert(result.detail || 'Login failed :<');
+        }
+    } catch (err) {
+        console.error("Login Error:", err);
+    }
+});
+
+document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+
+    if (password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username, email, password })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            localStorage.setItem('starfall_user_id', result.user_id);
+            alert('Account created! Welcome to Starfall.');
+            window.location.href = 'chat.html';
+        } else {
+            alert(result.detail || 'Signup failed :<');
+        }
+    } catch (err) {
+        console.error("Signup Error:", err);
+    }
+});

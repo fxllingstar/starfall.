@@ -1,36 +1,56 @@
-let currentView = 'server'; 
+let currentView = 'server';
 let currentDMUser = null;
 
-const token = localStorage.getItem('starfall_token');
+
 const userId = localStorage.getItem('starfall_user_id');
 
-const socket = new WebSocket(`ws://localhost:8000/ws/${userId}?token=${token}`);
+if (!userId) {
+    window.location.href = 'index.html';
+}
+
+// Intercept fetch to handle 401s (token expiration)
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+    const response = await originalFetch(...args);
+    if (response.status === 401) {
+        localStorage.removeItem('starfall_user_id');
+        alert('Session expired. Please log in again.');
+        window.location.href = 'index.html';
+    }
+    return response;
+};
+
+const socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+
+socket.onerror = (event) => {
+    console.error("WebSocket error:", event);
+    alert("Connection error. Please refresh the page.");
+};
 
 socket.onclose = (event) => {
-    if (event.code === 4008) {
+    console.log("WebSocket closed with code:", event.code);
+    if (event.code === 4008 || event.code === 1008) {
         alert("Session expired. Please log in again.");
-        window.location.href = "/login.html";
+        window.location.href = "index.html";
+    } else if (!event.wasClean) {
+        alert("Connection lost. Please refresh the page.");
     }
 };
 
-
- socket.onopen = function(e){
+socket.onopen = function(e){
     console.log("Connected to Starfall Backend! :>");
- };
+};
 
 
 //Incoming msg's
-socket.onmessage = function(event){
+socket.onmessage = function (event) {
     const data = JSON.parse(event.data);
     const messagesContainer = data.type === 'server' ? document.getElementById('serverMessages') : document.getElementById('dmMessages');
     const typingIndicator = data.type === 'server' ? document.getElementById('serverTyping') : document.getElementById('dmTyping');
 
     const now = new Date();
-
     const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-   
-const isOwnMessage = data.sender_id === parseInt(userId);
+    const isOwnMessage = data.sender_id === parseInt(userId);
 
     const messageHTML = `
         <div class="message ${isOwnMessage ? 'own' : ''}">
@@ -51,9 +71,39 @@ const isOwnMessage = data.sender_id === parseInt(userId);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 };
 
+function loadDMMessages(username) {
+    const dmMessages = document.getElementById('dmMessages');
+    const typingIndicator = document.getElementById('dmTyping');
+    
+    // Clear old messages except the typing indicator
+    Array.from(dmMessages.children).forEach(child => {
+        if (child !== typingIndicator) child.remove();
+    });
 
+    const samples = {
+        'Utku': [
+            { name: 'Utku', msg: "Hey! How's the project going?", own: false },
+            { name: 'You', msg: "Pretty good! Implementing secure DMs.", own: true }
+        ],
+        'Shortie': [{ name: 'Shortie', msg: "Want to work on features together?", own: false }]
+    };
 
+    const conversation = samples[username] || [];
+    conversation.forEach(item => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${item.own ? 'own' : ''}`;
+        msgDiv.innerHTML = `
+            <div class="avatar">${item.name[0]}</div>
+            <div class="message-content">
+                <div class="message-header"><span class="username">${item.name}</span></div>
+                <div class="message-bubble">${escapeHtml(item.msg)}</div>
+            </div>
+        `;
+        dmMessages.insertBefore(msgDiv, typingIndicator);
+    });
 
+    dmMessages.scrollTop = dmMessages.scrollHeight;
+}
 
 
         // Create starfall background effect
@@ -122,74 +172,7 @@ const isOwnMessage = data.sender_id === parseInt(userId);
             loadDMMessages(username);
         }
 
-        function loadDMMessages(username) {
-            const dmMessages = document.getElementById('dmMessages');
-            const typingIndicator = document.getElementById('dmTyping');
-            dmMessages.innerHTML = '';
-            
-            // Sample DM conversation
-            const conversations = {
-                'Utku': `
-                    <div class="message">
-                        <div class="avatar">A</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="username">Utku</span>
-                                <span class="timestamp">9:15 AM</span>
-                            </div>
-                            <div class="message-bubble">
-                                Hey! How's the project going?
-                            </div>
-                        </div>
-                    </div>
-                    <div class="message own">
-                        <div class="avatar">S</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="username">You</span>
-                                <span class="timestamp">9:18 AM</span>
-                            </div>
-                            <div class="message-bubble">
-                                Pretty good! Just implemented the DM feature
-                            </div>
-                        </div>
-                    </div>
-                `,
-                'Shortie': `
-                    <div class="message">
-                        <div class="avatar">J</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="username">Shortie</span>
-                                <span class="timestamp">2:30 PM</span>
-                            </div>
-                            <div class="message-bubble">
-                                Want to work on that feature together?
-                            </div>
-                        </div>
-                    </div>
-                `,
-                'Merc': `
-                    <div class="message">
-                        <div class="avatar">T</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="username">Merc</span>
-                                <span class="timestamp">Yesterday</span>
-                            </div>
-                            <div class="message-bubble">
-                                Let's catch up soon!
-                            </div>
-                        </div>
-                    </div>
-                `
-            };
-            
-            dmMessages.innerHTML = conversations[username] || '';
-            dmMessages.appendChild(typingIndicator);
-            dmMessages.scrollTop = dmMessages.scrollHeight;
-        }
-
+    
         // Toggle star/favorite
         function toggleStar(element) {
             if (element.textContent === '☆') {
