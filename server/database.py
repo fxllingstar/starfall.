@@ -26,7 +26,7 @@ except Exception as e:
 
 def get_server_members(server_id: int) -> list:
     """Fetch all user ID's :>"""
-    conn = det_db_connection()
+    conn =get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT user_id FROM server_members WHERE server_id = %s;", (server_id,))
@@ -47,27 +47,42 @@ def get_user_by_username(username: str):
         conn.close()
 
 def is_user_in_server(user_id: int, server_id: int) -> bool:
-    """Check if a user is actually a member of a server"""
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT 1 FROM server_members WHERE user_id = %s AND server_id = %s;"
+                "SELECT 1 FROM server_members WHERE user_id = %s AND server_id = %s;",
                 (user_id, server_id)
             )
+            return cur.fetchone() is not None  # Add return
     finally:
         conn.close()
-        
+
+def get_user_by_id(user_id: int):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id = %s;", (user_id,))
+            return cur.fetchone()
+    finally:
+        conn.close()
 
 
+def are_users_connected(user_id: int, recipient_id: int) -> bool:
+    """Check if two users are connected (friends/can DM)"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM friendships WHERE (user_id = %s AND friend_id = %s) OR (user_id = %s AND friend_id = %s);",
+                (user_id, recipient_id, recipient_id, user_id)
+            )
+            return cur.fetchone() is not None
+    finally:
+        conn.close()
 
 
-
-
-
-
-
-def save_message(sender_id: int, content:str, msg_type:str, recipient_id: int = None, server_id: int = None):
+def save_message(sender_id: int, content: str, msg_type: str, recipient_id: int = None, server_id: int = None):
     """Save a msg to the database"""
     conn = get_db_connection()
     try:
@@ -79,10 +94,10 @@ def save_message(sender_id: int, content:str, msg_type:str, recipient_id: int = 
                 )
 
             elif msg_type == "dm":
-                  cur.execute(
+                cur.execute(
                     "INSERT INTO messages (sender_id, content, recipient_id) VALUES (%s, %s, %s);",
                     (sender_id, content, recipient_id)
                 )
-                  conn.commit()
+        conn.commit()
     finally:
-         conn.close()
+        conn.close()

@@ -1,8 +1,18 @@
 let currentView = 'server'; 
 let currentDMUser = null;
 
+const token = localStorage.getItem('starfall_token');
+const userId = localStorage.getItem('starfall_user_id');
 
- const socket = new WebSocket('ws://localhost:8080/ws/1'); //testing
+const socket = new WebSocket(`ws://localhost:8000/ws/${userId}?token=${token}`);
+
+socket.onclose = (event) => {
+    if (event.code === 4008) {
+        alert("Session expired. Please log in again.");
+        window.location.href = "/login.html";
+    }
+};
+
 
  socket.onopen = function(e){
     console.log("Connected to Starfall Backend! :>");
@@ -20,7 +30,7 @@ socket.onmessage = function(event){
     const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
    
-    const isOwnMessage = false; 
+const isOwnMessage = data.sender_id === parseInt(userId);
 
     const messageHTML = `
         <div class="message ${isOwnMessage ? 'own' : ''}">
@@ -94,6 +104,7 @@ socket.onmessage = function(event){
 
         // Open DM
         function openDM(element, username, status) {
+                const dmMessages = document.getElementById('dmMessages');
             document.querySelectorAll('.dm-item').forEach(item => {
                 item.classList.remove('active');
             });
@@ -197,26 +208,23 @@ socket.onmessage = function(event){
 
             if (message === '') return;
 
+            const messagesContainer = type === 'server' ? document.getElementById('serverMessages') : document.getElementById('dmMessages');
+            const typingIndicator = type === 'server' ? document.getElementById('serverTyping') : document.getElementById('dmTyping');
 
             const payload = {
-        type: type,
-        content: messageContent,
-        sender_name: "You" // Temporary until I wire up real auth
-    };
+                type: type,
+                content: message,
+                sender_id: parseInt(userId),
+                sender_name: "You"
+            };
 
-    if (type === 'server') {
-        payload.server_id = 1; 
-    } else {
-        payload.recipient_id = 2;
-    }
+            if (type === 'server') {
+                payload.server_id = 1;
+            } else {
+                payload.recipient_id = currentDMUser ? parseInt(localStorage.getItem(`starfall_user_id_${currentDMUser}`)) : 2;
+            }
 
-    socket.send(JSON.stringify(payload));
-
-         
-
-
-
-            typingIndicator.insertAdjacentHTML('beforebegin', messageHTML);
+            socket.send(JSON.stringify(payload));
             input.value = '';
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
