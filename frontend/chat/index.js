@@ -10,40 +10,36 @@ let currentDMUser = null;
 
 
 //Incoming msg's
+socket.onmessage = function(event){
+    const data = JSON.parse(event.data);
+    const messagesContainer = data.type === 'server' ? document.getElementById('serverMessages') : document.getElementById('dmMessages');
+    const typingIndicator = data.type === 'server' ? document.getElementById('serverTyping') : document.getElementById('dmTyping');
 
+    const now = new Date();
 
+    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
+   
+    const isOwnMessage = false; 
 
+    const messageHTML = `
+        <div class="message ${isOwnMessage ? 'own' : ''}">
+            <div class="avatar">${data.sender_name ? data.sender_name.charAt(0) : 'U'}</div>
+            <div class="message-content">
+                <div class="message-header">
+                    <span class="username">${data.sender_name || 'User'}</span>
+                    <span class="timestamp">${timeString}</span>
+                </div>
+                <div class="message-bubble">
+                    ${escapeHtml(data.content)}
+                </div>
+            </div>
+        </div>
+    `;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    typingIndicator.insertAdjacentHTML('beforebegin', messageHTML);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+};
 
 
 
@@ -201,25 +197,24 @@ let currentDMUser = null;
 
             if (message === '') return;
 
-            const messagesContainer = type === 'server' ? document.getElementById('serverMessages') : document.getElementById('dmMessages');
-            const typingIndicator = type === 'server' ? document.getElementById('serverTyping') : document.getElementById('dmTyping');
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-            const messageHTML = `
-                <div class="message own">
-                    <div class="avatar">S</div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="username">You</span>
-                            <span class="timestamp">${timeString}</span>
-                        </div>
-                        <div class="message-bubble">
-                            ${escapeHtml(message)}
-                        </div>
-                    </div>
-                </div>
-            `;
+            const payload = {
+        type: type,
+        content: messageContent,
+        sender_name: "You" // Temporary until I wire up real auth
+    };
+
+    if (type === 'server') {
+        payload.server_id = 1; 
+    } else {
+        payload.recipient_id = 2;
+    }
+
+    socket.send(JSON.stringify(payload));
+
+         
+
+
 
             typingIndicator.insertAdjacentHTML('beforebegin', messageHTML);
             input.value = '';
