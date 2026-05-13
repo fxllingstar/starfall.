@@ -1,11 +1,15 @@
 let currentView = 'server';
 let currentDMUser = null;
-
+let socket = null;
+let reconnectAttempts = 0;
+let isReconnecting = false;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const BASE_RECONNECT_DELAY = 1000;
 
 const userId = localStorage.getItem('starfall_user_id');
 
 if (!userId) {
-    window.location.href = 'index.html';
+    window.location.href = '../login/index.html';
 }
 
 // Intercept fetch to handle 401s (token expiration)
@@ -15,31 +19,85 @@ window.fetch = async (...args) => {
     if (response.status === 401) {
         localStorage.removeItem('starfall_user_id');
         alert('Session expired. Please log in again.');
-        window.location.href = 'index.html';
+        window.location.href = '../login/index.html';
     }
     return response;
 };
 
-const socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+function connectWebSocket() {
+    socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
 
-socket.onerror = (event) => {
-    console.error("WebSocket error:", event);
-    alert("Connection error. Please refresh the page.");
-};
+    socket.onerror = (event) => {
+        console.error("WebSocket error:", event);
+        updateConnectionStatus('error');
+    };
 
-socket.onclose = (event) => {
-    console.log("WebSocket closed with code:", event.code);
-    if (event.code === 4008 || event.code === 1008) {
-        alert("Session expired. Please log in again.");
-        window.location.href = "index.html";
-    } else if (!event.wasClean) {
-        alert("Connection lost. Please refresh the page.");
+    socket.onclose = (event) => {
+        console.log("WebSocket closed with code:", event.code);
+        if (event.code === 4008 || event.code === 1008) {
+            localStorage.removeItem('starfall_user_id');
+            alert('Session expired. Please log in again.');
+            window.location.href = "../login/index.html";
+        } else {
+            updateConnectionStatus('offline');
+            if (!isReconnecting && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                scheduleReconnect();
+            }
+        }
+    };
+
+    socket.onopen = function(e) {
+        console.log("Connected to Starfall Backend! :>");
+        reconnectAttempts = 0;
+        isReconnecting = false;
+        updateConnectionStatus('online');
+    };
+}
+
+function scheduleReconnect() {
+    isReconnecting = true;
+    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), 30000);
+    reconnectAttempts++;
+
+    console.log(`Attempting reconnection ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+    updateConnectionStatus(`reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+
+    setTimeout(() => {
+        connectWebSocket();
+    }, delay);
+}
+
+function updateConnectionStatus(status) {
+    let statusEl = document.getElementById('connectionStatus');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'connectionStatus';
+        statusEl.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10000;
+            font-weight: bold;
+        `;
+        document.body.appendChild(statusEl);
     }
-};
 
-socket.onopen = function(e){
-    console.log("Connected to Starfall Backend! :>");
-};
+    const statusColors = {
+        online: '#4CAF50',
+        offline: '#FF9800',
+        error: '#F44336',
+        reconnecting: '#2196F3'
+    };
+
+    statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    statusEl.style.backgroundColor = statusColors[status] || '#999';
+    statusEl.style.color = 'white';
+}
+
+connectWebSocket();
 
 
 //Incoming msg's
@@ -207,7 +265,13 @@ function loadDMMessages(username) {
                 payload.recipient_id = currentDMUser ? parseInt(localStorage.getItem(`starfall_user_id_${currentDMUser}`)) : 2;
             }
 
-            socket.send(JSON.stringify(payload));
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(payload));
+            } else {
+                console.warn('WebSocket not connected, message will be sent when connection restored');
+                updateConnectionStatus('offline');
+            }
+
             input.value = '';
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 

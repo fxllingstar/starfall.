@@ -17,8 +17,8 @@
 
 
 import os
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict, Any
 import jwt
 from passlib.context import CryptContext  # type: ignore[import]
 from dotenv import load_dotenv
@@ -34,19 +34,53 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 if not SECRET_KEY:
     raise ValueError("No JWT_SECRET set in environment variables!")
 
-def hash_password(password : str) -> str:
+def hash_password(password: str) -> str:
+    """Hash a plaintext password using bcrypt.
+
+    Args:
+        password: Plaintext password
+
+    Returns:
+        Hashed password string
+    """
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plaintext password against a hash.
+
+    Args:
+        plain_password: Plaintext password to verify
+        hashed_password: Previously hashed password
+
+    Returns:
+        True if passwords match, False otherwise
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
-def create_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token.
+
+    Args:
+        data: Claims to encode in the token
+        expires_delta: Token expiration time (defaults to 15 minutes)
+
+    Returns:
+        Encoded JWT token
+    """
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def decode_token(token: str):
+def decode_token(token: str) -> Optional[Dict[str, Any]]:
+    """Decode and validate a JWT token.
+
+    Args:
+        token: JWT token to decode
+
+    Returns:
+        Decoded claims dict if valid, None if invalid
+    """
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.PyJWTError:
