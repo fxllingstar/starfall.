@@ -46,7 +46,7 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
             // AUDIT FIX: Store only non-sensitive ID, token is now in a secure cookie
             localStorage.setItem('starfall_user_id', result.user_id);
             alert('Login successful! Redirecting...');
-            window.location.href = '../chat/chat.html'; // Redirect to chat
+            window.location.href = 'https://starfall-2r5isvsl9-st4r-s-projects.vercel.app/chat'; // Redirect to chat
         } else {
             const errorMsg = result.detail || JSON.stringify(result) || 'Login failed :<';
             alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
@@ -80,7 +80,7 @@ document.getElementById('signupFormElement').addEventListener('submit', async (e
         if (response.ok) {
             localStorage.setItem('starfall_user_id', result.user_id);
             alert('Account created! Welcome to Starfall.');
-            window.location.href = '../chat/chat.html';
+            window.location.href = 'https://starfall-2r5isvsl9-st4r-s-projects.vercel.app/chat';
         } else {
             const errorMsg = result.detail || JSON.stringify(result) || 'Signup failed :<';
             alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));

@@ -9,7 +9,7 @@ const BASE_RECONNECT_DELAY = 1000;
 const userId = localStorage.getItem('starfall_user_id');
 
 if (!userId) {
-    window.location.href = '../login/index.html';
+    window.location.href = 'https://starfall-2r5isvsl9-st4r-s-projects.vercel.app/login';
 }
 
 // Intercept fetch to handle 401s (token expiration)
@@ -19,7 +19,7 @@ window.fetch = async (...args) => {
     if (response.status === 401) {
         localStorage.removeItem('starfall_user_id');
         alert('Session expired. Please log in again.');
-        window.location.href = '../login/index.html';
+        window.location.href = 'https://starfall-2r5isvsl9-st4r-s-projects.vercel.app/login';
     }
     return response;
 };
