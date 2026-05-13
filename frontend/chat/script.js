@@ -25,7 +25,7 @@ window.fetch = async (...args) => {
 };
 
 function connectWebSocket() {
-    socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+    socket = new WebSocket(`wss://starfall.loca.lt/ws/${userId}`);
 
     socket.onerror = (event) => {
         console.error("WebSocket error:", event);
