@@ -50,7 +50,7 @@ app.state.limiter = limiter
 # CORS: credentials require explicit origins (wildcard + credentials is blocked by browsers)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
+    allow_origins=["https://starfall-beryl.vercel.app/login", "https://starfall-beryl.vercel.app", "https://starfall-beryl.vercel.app/chat" ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
