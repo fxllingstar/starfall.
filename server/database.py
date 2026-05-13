@@ -143,3 +143,72 @@ def get_user_by_email(email: str):
             return cur.fetchone()
     finally:
         conn.close()
+
+
+def queue_pending_message(
+    recipient_id: int, sender_id: int, content: str,
+    msg_type: str, server_id: int = None
+) -> None:
+    """Queue a message for offline user delivery.
+
+    Args:
+        recipient_id: User ID who will receive the message
+        sender_id: User ID of the sender
+        content: Message content
+        msg_type: Either 'dm' or 'server'
+        server_id: Server ID if msg_type is 'server'
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO pending_messages
+                   (recipient_id, sender_id, content, msg_type, server_id)
+                   VALUES (%s, %s, %s, %s, %s);""",
+                (recipient_id, sender_id, content, msg_type, server_id)
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
+def get_pending_messages(user_id: int) -> list:
+    """Fetch all undelivered messages for a user.
+
+    Args:
+        user_id: User ID to fetch messages for
+
+    Returns:
+        List of pending messages
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT id, sender_id, content, msg_type, server_id, created_at
+                   FROM pending_messages
+                   WHERE recipient_id = %s AND delivered = FALSE
+                   ORDER BY created_at ASC;""",
+                (user_id,)
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+def mark_message_delivered(message_id: int) -> None:
+    """Mark a pending message as delivered.
+
+    Args:
+        message_id: ID of the pending message
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE pending_messages SET delivered = TRUE WHERE id = %s;",
+                (message_id,)
+            )
+            conn.commit()
+    finally:
+        conn.close()

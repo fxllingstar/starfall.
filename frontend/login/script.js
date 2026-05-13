@@ -46,12 +46,14 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
             // AUDIT FIX: Store only non-sensitive ID, token is now in a secure cookie
             localStorage.setItem('starfall_user_id', result.user_id);
             alert('Login successful! Redirecting...');
-            window.location.href = 'chat.html'; // Redirect to chat
+            window.location.href = '../chat/chat.html'; // Redirect to chat
         } else {
-            alert(result.detail || 'Login failed :<');
+            const errorMsg = result.detail || JSON.stringify(result) || 'Login failed :<';
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
         }
     } catch (err) {
         console.error("Login Error:", err);
+        alert('Network error: ' + err.message);
     }
 });
 
@@ -78,11 +80,26 @@ document.getElementById('signupFormElement').addEventListener('submit', async (e
         if (response.ok) {
             localStorage.setItem('starfall_user_id', result.user_id);
             alert('Account created! Welcome to Starfall.');
-            window.location.href = 'chat.html';
+            window.location.href = '../chat/chat.html';
         } else {
-            alert(result.detail || 'Signup failed :<');
+            const errorMsg = result.detail || JSON.stringify(result) || 'Signup failed :<';
+            alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
         }
     } catch (err) {
         console.error("Signup Error:", err);
+        alert('Network error: ' + err.message);
     }
+});
+
+// Form toggle between login and signup
+document.getElementById('showSignup').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('loginForm').classList.remove('active');
+    document.getElementById('signupForm').classList.add('active');
+});
+
+document.getElementById('showLogin').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('signupForm').classList.remove('active');
+    document.getElementById('loginForm').classList.add('active');
 });
