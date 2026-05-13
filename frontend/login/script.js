@@ -23,7 +23,7 @@
  
 
 
-      const API_URL = 'http://localhost:8000';
+      const API_URL = 'https://starfall.loca.lt';
 
 
 // Form submissions
